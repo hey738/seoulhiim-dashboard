@@ -273,4 +273,8 @@ final = bar + label_rate + label_count
 st.altair_chart(final, use_container_width=True)
 
 df_t = merge_sel.set_index('연령대').T[custom_order].copy()
+df_t.loc['인구수']     = df_t.loc['인구수'].astype(int).map("{:,}".format)
+df_t.loc['환자수']     = df_t.loc['환자수'].astype(int).map("{:,}".format)
+df_t.loc['장악도(%)']  = df_t.loc['장악도(%)'].map(lambda x: f"{x:.4f}%")
+df_t = df_t.astype(str)
 st.dataframe(df_t)
