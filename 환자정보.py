@@ -87,6 +87,8 @@ col3.metric("신환 비율", f"{new_ratio:.1%}")
 col4.metric("재방문 비율", f"{return_ratio:.1%}")
 col5.metric("평균 연령", f"{avg_age:.1f}세")
 
+st.markdown("---")
+
 # 5) 일별 내원 추이 (토글 가능한 추세선)
 st.subheader("일별 내원 추이")
 
