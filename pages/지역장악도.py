@@ -180,6 +180,8 @@ c1.metric("지역 장악도",f"{region_pen:.2f}%")
 c2.metric("기간내 장악도",f"{period_pen:.2f}%")
 c3.metric("정확도",f"{acc*100:.0f}%")
 
+st.markdown("---")
+
 # 차트
 custom_order = ["9세이하"]+[f"{i}대" for i in range(10,100,10)]+["100세이상"]
 title = (
