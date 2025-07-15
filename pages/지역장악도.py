@@ -133,9 +133,6 @@ pop_sel["시/군/구"] = city if city!="전체" else pop_sel.get("시/군/구","
 pop_sel["행정동"]   = dong if dong!="전체" else pop_sel.get("행정동","")
 pop_sel["전체인구"] = pop_sel["전체인구"].fillna(0)
 
-st.write("pop_sel")
-pop_sel
-
 # 환자수 집계
 mask_act = build_mask(active, province, city, dong)
 grouped_pat = (
@@ -145,12 +142,6 @@ grouped_pat = (
     .reset_index(name="환자수")
 )
 
-st.write('active')
-active
-
-st.write("grouped_pat")
-grouped_pat
-
 # melt → merge → calc
 age_cols = [c for c in pop_sel.columns if c in grouped_pat["연령대"].tolist()]
 pop_melt = pop_sel.melt(
@@ -159,18 +150,12 @@ pop_melt = pop_sel.melt(
     var_name="연령대", value_name="인구수"
 )
 
-st.write("pop_melt")
-pop_melt
-
 pop_melt["인구수"] = (
     pop_melt["인구수"].astype(str).str.replace(",","")
       .pipe(pd.to_numeric, errors="coerce")
 )
 
 grouped_pop = pop_melt.groupby('연령대')['인구수'].sum().reset_index(name='인구수')
-
-st.write('grouped_pop')
-grouped_pop
 
 merge_sel = (
     pd.merge(grouped_pop, grouped_pat, on="연령대", how="left")
@@ -179,9 +164,6 @@ merge_sel = (
 merge_sel["장악도(%)"] = (
     merge_sel["환자수"]/merge_sel["인구수"]*100
 ).round(4)
-
-st.write('merge_sel')
-merge_sel
 
 # KPI 카드
 total_pop       = int(pop_sel["전체인구"].sum())
