@@ -163,7 +163,7 @@ merge_sel = (
 )
 merge_sel["장악도(%)"] = (
     merge_sel["환자수"]/merge_sel["인구수"]*100
-).round(4)
+)
 
 # KPI 카드
 total_pop       = int(pop_sel["전체인구"].sum())
@@ -216,13 +216,13 @@ bar = (
          x=alt.X("연령대:O",sort=custom_order,axis=alt.Axis(labelAngle=0)),
          y=alt.Y(
             "장악도(%):Q",
-            axis=alt.Axis(format=".4f"),
+            axis=alt.Axis(format=".1f"),
             title="장악도(%)"
         ),
          tooltip=[
             alt.Tooltip("인구수:Q",title="인구수", format=","),
             alt.Tooltip("환자수:Q",title="환자수", format=","),
-            alt.Tooltip("장악도(%):Q",title="장악도(%)",format=".4f")
+            alt.Tooltip("장악도(%):Q",title="장악도(%)",format=".1f")
          ]
       )
       .properties(height=400)
@@ -232,7 +232,7 @@ label_rate = (
     alt.Chart(merge_sel)
       .transform_calculate(
         display="""
-          format(datum["장악도(%)"], ".4f") + "%"
+          format(datum["장악도(%)"], ".1f") + "%"
         """
       )
       .mark_text(
@@ -277,6 +277,6 @@ st.altair_chart(final, use_container_width=True)
 df_t = merge_sel.set_index('연령대').T[custom_order].copy()
 df_t.loc['인구수']     = df_t.loc['인구수'].astype(int).map("{:,}".format)
 df_t.loc['환자수']     = df_t.loc['환자수'].astype(int).map("{:,}".format)
-df_t.loc['장악도(%)']  = df_t.loc['장악도(%)'].map(lambda x: f"{x:.4f}%")
+df_t.loc['장악도(%)']  = df_t.loc['장악도(%)'].map(lambda x: f"{x:.1f}%")
 df_t = df_t.astype(str)
 st.dataframe(df_t)
