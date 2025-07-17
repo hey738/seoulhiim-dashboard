@@ -7,32 +7,25 @@ from streamlit_folium import folium_static
 from folium.plugins import FastMarkerCluster
 
 def authenticate():
-    # 세션 스테이트에 인증 플래그 초기화
     if "authenticated" not in st.session_state:
         st.session_state.authenticated = False
 
-    # 이미 인증된 상태라면 바로 리턴
     if st.session_state.authenticated:
         return
 
-    # 인증이 안 된 상태면 사이드바에 패스워드 창
     pw = st.sidebar.text_input("대시보드 비밀번호", type="password")
 
-    # 빈 칸이면 멈추기
     if not pw:
         st.sidebar.warning("비밀번호를 입력해주세요.")
         st.stop()
 
-    # 맞으면 세션에 기록하고 바로 리턴(다음 줄부터 본문 실행)
     if pw == st.secrets["general"]["APP_PASSWORD"]:
         st.session_state.authenticated = True
         return
 
-    # 틀렸으면 멈추기
     st.sidebar.error("❌ 비밀번호가 틀렸습니다.")
     st.stop()
 
-# 페이지 설정
 st.set_page_config(page_title="환자 대시보드", layout="wide")
 
 authenticate()
