@@ -23,7 +23,7 @@ def authenticate():
         st.stop()
 
     # 맞으면 세션에 기록하고 바로 리턴(다음 줄부터 본문 실행)
-    if pw == '1234':
+    if pw == ["general"]["APP_PASSWORD"]:
         st.session_state.authenticated = True
         return
 
