@@ -18,7 +18,7 @@ def authenticate():
         st.sidebar.warning("비밀번호를 입력해주세요.")
         st.stop()
 
-    if pw == ["general"]["APP_PASSWORD"]:
+    if pw == st.secrets["general"]["APP_PASSWORD"]:
         st.session_state.authenticated = True
         return
 
