@@ -116,7 +116,7 @@ patient_df, acc = load_patient_data()
 
 # 사이드바 필터
 with st.sidebar.expander("활성 환자 기간", True):
-    months = st.slider("최근 몇 개월 활성", 6,24,12)
+    months = st.slider("최근 몇 개월 활성", 1,24,12)
     cutoff = datetime.now() - timedelta(days=30*months)
     st.write(f"{cutoff.date()} 이후")
 
