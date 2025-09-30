@@ -26,7 +26,11 @@ def authenticate():
     st.sidebar.error("❌ 비밀번호가 틀렸습니다.")
     st.stop()
 
-st.set_page_config(page_title="환자 대시보드", layout="wide")
+st.set_page_config(
+    page_title="환자 대시보드",
+    layout="wide",
+    page_icon="서울안녕내과.ico"
+)
 
 authenticate()
 
@@ -402,3 +406,4 @@ filtered['y'].replace("", pd.NA, inplace=True)
 data = list(filtered.dropna(subset=['y','x'])[['y','x']].itertuples(index=False, name=None))
 FastMarkerCluster(data).add_to(m)
 folium_static(m, width=800, height=600)
+
