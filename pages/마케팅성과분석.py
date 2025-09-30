@@ -25,7 +25,11 @@ def authenticate():
     st.sidebar.error("❌ 비밀번호가 틀렸습니다.")
     st.stop()
 
-st.set_page_config(page_title="마케팅 성과 분석", layout="wide")
+st.set_page_config(
+    page_title="마케팅 성과 분석", 
+    layout="wide",
+    page_icon="서울안녕내과.ico"
+)
 authenticate()
 
 st.title("마케팅 성과 분석")
