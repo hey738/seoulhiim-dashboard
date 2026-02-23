@@ -298,7 +298,7 @@ with tab1:
         title='캠페인 전후 신환 추이'
     ).interactive()
     
-    st.altair_chart(chart, use_container_width=True)
+    st.altair_chart(chart, width='stretch')
 
 with tab2:
     st.header("🗺️ 지역별 성과 분석")
@@ -345,7 +345,7 @@ with tab2:
             tooltip=['행정동', '신환수_이전', '신환수_캠페인', '신환_증가']
         ).properties(height=400)
         
-        st.altair_chart(chart, use_container_width=True)
+        st.altair_chart(chart, width='stretch')
     
     with col2:
         st.subheader("📊 신환 증가율 TOP 10")
@@ -363,7 +363,7 @@ with tab2:
             tooltip=['행정동', '신환수_이전', '신환수_캠페인', alt.Tooltip('신환_증가율:Q', format='.1f')]
         ).properties(height=400)
         
-        st.altair_chart(chart2, use_container_width=True)
+        st.altair_chart(chart2, width='stretch')
     
     # 지역별 침투율 변화 (인구 데이터가 있는 경우)
     if not pop_df.empty:
@@ -414,7 +414,7 @@ with tab2:
                     alt.Tooltip('침투율_변화:Q', format='.2f')]
         ).properties(height=400)
         
-        st.altair_chart(chart3, use_container_width=True)
+        st.altair_chart(chart3, width='stretch')
 
 with tab3:
     # 타겟 지역 선택 시 헤더에 표시
@@ -459,7 +459,7 @@ with tab3:
             tooltip=['연령대', '기간', '신환수']
         ).properties(height=350)
         
-        st.altair_chart(chart, use_container_width=True)
+        st.altair_chart(chart, width='stretch')
     
     with col2:
         st.subheader("성별 신환 분포")
@@ -480,7 +480,7 @@ with tab3:
             tooltip=['성별', '기간', '신환수']
         ).properties(height=350)
         
-        st.altair_chart(chart2, use_container_width=True)
+        st.altair_chart(chart2, width='stretch')
     
     # 신환 재방문 분석
     st.subheader("📊 신환 재방문 분석")
@@ -541,6 +541,6 @@ with tab3:
             tooltip=['재방문횟수', '환자수']
         ).properties(height=300)
         
-        st.altair_chart(chart3, use_container_width=True)
+        st.altair_chart(chart3, width='stretch')
     else:
         st.info("캠페인 종료 후 데이터가 충분하지 않아 재방문 분석을 수행할 수 없습니다.")

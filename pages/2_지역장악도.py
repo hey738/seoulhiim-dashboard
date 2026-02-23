@@ -162,7 +162,7 @@ pop_sel["전체인구"] = pop_sel["전체인구"].fillna(0)
 mask_act = build_mask(active, province, city, dong)
 grouped_pat = (
     active[mask_act]
-    .groupby("연령대")["환자번호"]
+    .groupby("연령대", observed=False)["환자번호"]
     .nunique()
     .reset_index(name="환자수")
 )
@@ -297,7 +297,7 @@ label_count = (
 )
 
 final = bar + label_rate + label_count
-st.altair_chart(final, use_container_width=True)
+st.altair_chart(final, width='stretch')
 
 df_t = merge_sel.set_index('연령대').T[custom_order].copy()
 df_t.loc['인구수']     = df_t.loc['인구수'].astype(int).map("{:,}".format)

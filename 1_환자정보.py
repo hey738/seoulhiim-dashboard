@@ -3,7 +3,7 @@ import pandas as pd
 import altair as alt
 import folium
 import gspread
-from streamlit_folium import folium_static
+from streamlit_folium import st_folium
 from folium.plugins import FastMarkerCluster
 
 def authenticate():
@@ -210,14 +210,14 @@ final_comp_chart = comp_area + comp_hover
 # 1) 선택 기간 월별 집계
 curr_monthly = (
     filtered
-    .groupby(pd.Grouper(key='진료일자', freq='M'))
+    .groupby(pd.Grouper(key='진료일자', freq='ME'))
     .size()
     .reset_index(name='진료횟수')
 )
 # 2) 전년 동기 월별 집계 (위에서 만든 ly_filtered 재사용)
 ly_monthly = (
     ly_filtered
-    .groupby(pd.Grouper(key='진료일자', freq='M'))
+    .groupby(pd.Grouper(key='진료일자', freq='ME'))
     .size()
     .reset_index(name='진료횟수')
 )
@@ -313,11 +313,11 @@ with col1:
     m1, m2 = st.columns(2)
     m1.metric("진료횟수", f"{curr_total:,}건", f"{visit_growth:+.1f}%")
     m2.metric("환자수", f"{curr_patients:,}명", f"{patient_growth:+.1f}%")
-    st.altair_chart(final_comp_chart, use_container_width=True)
+    st.altair_chart(final_comp_chart, width='stretch')
 
 with col2:
     st.subheader("월간 성장률")
-    st.altair_chart(final_month_bar, use_container_width=True)
+    st.altair_chart(final_month_bar, width='stretch')
 
 # 5) 내원 추이 (토글 가능한 추세선)
 st.subheader("내원 추이")
@@ -447,7 +447,7 @@ final_chart = (
            autosize={'type':'fit-x','contains':'padding'}
        )
 )
-st.altair_chart(final_chart, use_container_width=True)
+st.altair_chart(final_chart, width='stretch')
 
 # 7) 요일×시간대 히트맵
 st.subheader("요일×시간대 내원 패턴")
@@ -459,16 +459,16 @@ heat_chart = alt.Chart(heat).mark_rect().encode(
     y=alt.Y('요일:O', sort=['월요일','화요일','수요일','목요일','금요일','토요일','일요일']),
     color=alt.Color('count:Q', scale=alt.Scale(scheme='blues'), title='내원수')
 )
-st.altair_chart(heat_chart, use_container_width=True)
+st.altair_chart(heat_chart, width='stretch')
 
 # 7) 환자 지도 분포
 st.subheader("환자 지도 분포")
 m = folium.Map(location=[37.5665, 126.9780], zoom_start=7)
 folium.plugins.Fullscreen().add_to(m)
 unique_patients = filtered.drop_duplicates(subset='환자번호')
-unique_patients['x'].replace("", pd.NA, inplace=True)
-unique_patients['y'].replace("", pd.NA, inplace=True)
+unique_patients['x'] = unique_patients['x'].replace("", pd.NA)
+unique_patients['y'] = unique_patients['y'].replace("", pd.NA)
 data = list(unique_patients.dropna(subset=['y','x'])[['y','x']].itertuples(index=False, name=None))
 FastMarkerCluster(data).add_to(m)
-folium_static(m, width=800, height=600)
+st_folium(m, width=800, height=600, returned_objects=[])
 
