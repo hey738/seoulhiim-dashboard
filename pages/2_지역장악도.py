@@ -299,9 +299,8 @@ label_count = (
 final = bar + label_rate + label_count
 st.altair_chart(final, width='stretch')
 
-df_t = merge_sel.set_index('연령대').T[custom_order].copy()
-df_t.loc['인구수']     = df_t.loc['인구수'].astype(int).map("{:,}".format)
-df_t.loc['환자수']     = df_t.loc['환자수'].astype(int).map("{:,}".format)
-df_t.loc['장악도(%)']  = df_t.loc['장악도(%)'].map(lambda x: f"{x:.1f}%")
-df_t = df_t.astype(str)
+df_t = merge_sel.set_index('연령대').T[custom_order].astype(str).copy()
+df_t.loc['인구수']     = merge_sel.set_index('연령대')['인구수'].reindex(custom_order).astype(int).map("{:,}".format)
+df_t.loc['환자수']     = merge_sel.set_index('연령대')['환자수'].reindex(custom_order).astype(int).map("{:,}".format)
+df_t.loc['장악도(%)']  = merge_sel.set_index('연령대')['장악도(%)'].reindex(custom_order).map(lambda x: f"{x:.1f}%")
 st.dataframe(df_t)
