@@ -11,9 +11,9 @@
 ## 실행
 
 ```bash
-streamlit run 1_환자정보.py
+streamlit run 환자정보.py
 ```
 
 ## 배포
 
-Streamlit Cloud (메인 파일: `1_환자정보.py`)
+Streamlit Cloud (메인 파일: `환자정보.py`)

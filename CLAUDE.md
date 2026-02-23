@@ -9,12 +9,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Running Locally
 
 ```bash
-streamlit run 1_환자정보.py
+streamlit run 환자정보.py
 ```
 
 ## Architecture
 
-- **`1_환자정보.py`** — 메인 엔트리포인트. KPI, 전년 동기 비교, 월간 성장률, 내원 추이, 요일×시간대 히트맵, 환자 지도 분포.
+- **`환자정보.py`** — 메인 엔트리포인트. KPI, 전년 동기 비교, 월간 성장률, 내원 추이, 요일×시간대 히트맵, 환자 지도 분포.
 - **`pages/2_지역장악도.py`** — 행정동·연령대별 시장 침투율(장악도) 분석. 인구 대비 환자 비율 시각화.
 - **`pages/3_마케팅성과분석.py`** — 캠페인 전후 성과 비교. 신환 트렌드, 지역별 성과, 신환 재방문 분석.
 
