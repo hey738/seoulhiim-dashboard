@@ -201,9 +201,9 @@ c1,c2,c3 = st.columns(3)
 c1.metric("인구수",f"{total_pop:,}명")
 c2.metric("환자수",f"{total_patients:,}명")
 c3.metric("활성 환자수",f"{active_patients:,}명")
-c1.metric("지역 장악도",f"{region_pen:.2f}%")
-c2.metric("기간내 장악도",f"{period_pen:.2f}%")
-c3.metric("정확도",f"{acc*100:.0f}%")
+c1.metric("데이터 완성도",f"{acc*100:.0f}%")
+c2.metric("지역 장악도",f"{region_pen:.2f}%")
+c3.metric("기간내 장악도",f"{period_pen:.2f}%")
 
 st.markdown("---")
 
