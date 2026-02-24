@@ -118,6 +118,20 @@ def load_patient_data():
 pop_df = load_population()
 patient_df, acc = load_patient_data()
 
+# 드릴다운 처리 (위젯 렌더링 전에 session_state 설정)
+if "_drilldown" in st.session_state:
+    dd = st.session_state.pop("_drilldown")
+    level, region = dd["level"], dd["region"]
+    if level == "province":
+        st.session_state["filter_province"] = region
+        st.session_state.pop("filter_city", None)
+        st.session_state.pop("filter_dong", None)
+    elif level == "city":
+        st.session_state["filter_city"] = region
+        st.session_state.pop("filter_dong", None)
+    elif level == "dong":
+        st.session_state["filter_dong"] = region
+
 # 사이드바 필터
 with st.sidebar.expander("활성 환자 기간", True):
     months = st.slider("최근 몇 개월 활성", 1,24,12)
@@ -126,17 +140,17 @@ with st.sidebar.expander("활성 환자 기간", True):
 
 with st.sidebar.expander("지역 선택", True):
     provinces = ["전체"] + pop_df.index.get_level_values(0).unique().tolist()
-    province = st.selectbox("시/도", provinces, index=0)
+    province = st.selectbox("시/도", provinces, key="filter_province")
     if province=="전체":
         cities=["전체"]
     else:
         cities = ["전체"] + pop_df.loc[province].index.get_level_values(0).unique().tolist()
-    city = st.selectbox("시/군/구", cities)
+    city = st.selectbox("시/군/구", cities, key="filter_city")
     if province=="전체" or city=="전체":
         dongs=["전체"]
     else:
         dongs = ["전체"] + pop_df.loc[(province,city)].index.get_level_values(0).unique().tolist()
-    dong = st.selectbox("행정동", dongs)
+    dong = st.selectbox("행정동", dongs, key="filter_dong")
 
 # 활성 환자 데이터
 active = patient_df[patient_df["진료일자"]>=cutoff].copy()
@@ -244,10 +258,13 @@ if dong == "전체":
         else:
             rank_title = f"{province} {city} {sub_col}별 장악도 랭킹"
         st.subheader(rank_title)
+        st.caption("💡 막대를 클릭하면 해당 지역으로 드릴다운됩니다")
+
+        point_sel = alt.selection_point(name="region_click", fields=["지역"], on="click")
 
         rank_bar = (
             alt.Chart(ranking_df)
-            .mark_bar()
+            .mark_bar(cursor="pointer")
             .encode(
                 y=alt.Y("지역:N", sort=ranking_df["지역"].tolist(), title=None),
                 x=alt.X("장악도(%):Q", title="장악도(%)"),
@@ -259,20 +276,33 @@ if dong == "전체":
                     alt.Tooltip("장악도(%):Q", title="장악도(%)", format=".2f")
                 ]
             )
+            .add_params(point_sel)
         )
-        rank_label = (
-            alt.Chart(ranking_df)
-            .mark_text(align="left", dx=3, fontSize=12)
-            .encode(
-                y=alt.Y("지역:N", sort=ranking_df["지역"].tolist()),
-                x=alt.X("장악도(%):Q"),
-                text=alt.Text("장악도(%):Q", format=".2f")
-            )
-        )
-        rank_chart = (rank_bar + rank_label).properties(
+        rank_chart = rank_bar.properties(
             height=max(len(ranking_df) * 25, 200)
         )
-        st.altair_chart(rank_chart, use_container_width=True)
+        event = st.altair_chart(rank_chart, width="stretch", on_select="rerun", key="rank_chart")
+
+        # 클릭 이벤트 처리: 클릭한 지역으로 드릴다운
+        sel = event.selection.get("region_click") if event.selection else None
+        # sel 구조: list of dicts, e.g. [{"지역": "서울특별시"}]
+        # 또는 dict with lists, e.g. {"지역": ["서울특별시"]}
+        clicked = None
+        if sel:
+            if isinstance(sel, list) and len(sel) > 0 and "지역" in sel[0]:
+                clicked = sel[0]["지역"]
+            elif isinstance(sel, dict) and len(sel.get("지역", [])) > 0:
+                clicked = sel["지역"][0]
+
+        if clicked:
+            if province == "전체":
+                st.session_state["_drilldown"] = {"level": "province", "region": clicked}
+            elif city == "전체":
+                st.session_state["_drilldown"] = {"level": "city", "region": clicked}
+            else:
+                st.session_state["_drilldown"] = {"level": "dong", "region": clicked}
+            st.rerun()
+
         st.markdown("---")
 
 # 차트
