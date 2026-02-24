@@ -66,3 +66,5 @@ Google Sheets (ID: `st.secrets["google_sheets"]["sheet_id"]`)의 워크시트:
 - KPI help 툴팁: "정의 → 해석 가이드 → 비교값" 3단 구조
 - 환자 수 집계: 모든 페이지에서 고유 환자 기준 (`nunique` / `drop_duplicates`)
 - 지역 필터: 빈 문자열 포함 제거 (`str.strip().astype(bool)`)
+- 툴팁 날짜: temporal 타입(`:T`) 사용 금지. 문자열 컬럼(`.dt.strftime()`)으로 변환 후 `:N`으로 표시
+- 성별 표시: 원본 M/F → 한글 남성/여성으로 변환 (`.replace({'M': '남성', 'F': '여성'})`)

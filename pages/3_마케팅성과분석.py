@@ -514,52 +514,55 @@ else:
     new_patients_campaign_df = campaign_data[campaign_data['초/재진'] == '신환']
     new_patients_before_df = before_data[before_data['초/재진'] == '신환']
 
-col1, col2 = st.columns(2)
+# 연령대별 구성비 비교
+st.markdown("**연령대별 신환 구성비**")
 
-with col1:
-    st.markdown("**연령대별 신환 분포**")
+age_campaign = new_patients_campaign_df.drop_duplicates('환자번호').groupby('연령대', observed=True).size().reset_index(name='신환수')
+age_before = new_patients_before_df.drop_duplicates('환자번호').groupby('연령대', observed=True).size().reset_index(name='신환수')
 
-    # Task 1(d): drop_duplicates로 고유 환자만 집계
-    age_campaign = new_patients_campaign_df.drop_duplicates('환자번호').groupby('연령대', observed=True).size().reset_index(name='캠페인')
-    age_before = new_patients_before_df.drop_duplicates('환자번호').groupby('연령대', observed=True).size().reset_index(name='이전')
+campaign_total_age = age_campaign['신환수'].sum()
+before_total_age = age_before['신환수'].sum()
+age_campaign['구성비'] = (age_campaign['신환수'] / campaign_total_age * 100) if campaign_total_age > 0 else 0
+age_before['구성비'] = (age_before['신환수'] / before_total_age * 100) if before_total_age > 0 else 0
+age_campaign['기간'] = '캠페인'
+age_before['기간'] = '이전'
 
-    age_comparison = pd.merge(age_campaign, age_before, on='연령대', how='outer')
-    age_comparison['캠페인'] = age_comparison['캠페인'].fillna(0)
-    age_comparison['이전'] = age_comparison['이전'].fillna(0)
-    age_comparison = age_comparison.melt(id_vars='연령대', var_name='기간', value_name='신환수')
+age_comparison = pd.concat([age_campaign, age_before], ignore_index=True)
 
-    chart = alt.Chart(age_comparison).mark_bar().encode(
-        x=alt.X('연령대:N', title='연령대', sort=labels, axis=alt.Axis(labelAngle=0)),
-        y=alt.Y('신환수:Q', title='신환 수'),
-        color=alt.Color('기간:N', scale=alt.Scale(scheme='category10')),
-        xOffset='기간:N',
-        tooltip=['연령대', '기간', '신환수']
-    ).properties(height=350)
+chart = alt.Chart(age_comparison).mark_bar().encode(
+    x=alt.X('연령대:N', title='연령대', sort=labels, axis=alt.Axis(labelAngle=0)),
+    y=alt.Y('구성비:Q', title='구성비 (%)'),
+    color=alt.Color('기간:N',
+        scale=alt.Scale(domain=['이전', '캠페인'], range=['#A0AEC0', '#FF6B6B']),
+        legend=alt.Legend(title='기간')),
+    xOffset=alt.XOffset('기간:N', sort=['이전', '캠페인']),
+    tooltip=['연령대', '기간', alt.Tooltip('구성비:Q', format='.1f', title='구성비(%)'), alt.Tooltip('신환수:Q', title='신환 수')]
+).properties(height=350)
 
-    st.altair_chart(chart, width='stretch')
+st.altair_chart(chart, width='stretch')
 
-with col2:
-    st.markdown("**성별 신환 분포**")
+# 구성비 변화 자동 캡션
+if campaign_total_age > 0 and before_total_age > 0:
+    age_shift = pd.merge(
+        age_campaign[['연령대', '구성비']].rename(columns={'구성비': '캠페인_비'}),
+        age_before[['연령대', '구성비']].rename(columns={'구성비': '이전_비'}),
+        on='연령대', how='outer'
+    )
+    age_shift[['캠페인_비', '이전_비']] = age_shift[['캠페인_비', '이전_비']].fillna(0)
+    age_shift['변화'] = age_shift['캠페인_비'] - age_shift['이전_비']
+    top_increase = age_shift.nlargest(1, '변화').iloc[0]
+    top_decrease = age_shift.nsmallest(1, '변화').iloc[0]
+    st.caption(f"구성비 증가: {top_increase['연령대']} ({top_increase['변화']:+.1f}%p) / 감소: {top_decrease['연령대']} ({top_decrease['변화']:+.1f}%p)")
 
-    # Task 1(d): drop_duplicates로 고유 환자만 집계
-    gender_campaign = new_patients_campaign_df.drop_duplicates('환자번호').groupby('성별').size().reset_index(name='캠페인')
-    gender_before = new_patients_before_df.drop_duplicates('환자번호').groupby('성별').size().reset_index(name='이전')
-
-    gender_comparison = pd.merge(gender_campaign, gender_before, on='성별', how='outer')
-    gender_comparison['캠페인'] = gender_comparison['캠페인'].fillna(0)
-    gender_comparison['이전'] = gender_comparison['이전'].fillna(0)
-    gender_comparison['성별'] = gender_comparison['성별'].replace({'M': '남성', 'F': '여성'})
-    gender_comparison = gender_comparison.melt(id_vars='성별', var_name='기간', value_name='신환수')
-
-    chart2 = alt.Chart(gender_comparison).mark_bar().encode(
-        x=alt.X('성별:N', title='성별', axis=alt.Axis(labelAngle=0)),
-        y=alt.Y('신환수:Q', title='신환 수'),
-        color=alt.Color('기간:N', scale=alt.Scale(scheme='category10')),
-        xOffset='기간:N',
-        tooltip=['성별', '기간', '신환수']
-    ).properties(height=350)
-
-    st.altair_chart(chart2, width='stretch')
+# 성별 캡션
+gender_campaign = new_patients_campaign_df.drop_duplicates('환자번호')['성별'].replace({'M': '남성', 'F': '여성'}).value_counts(normalize=True) * 100
+gender_before = new_patients_before_df.drop_duplicates('환자번호')['성별'].replace({'M': '남성', 'F': '여성'}).value_counts(normalize=True) * 100
+gender_parts = []
+for g in ['남성', '여성']:
+    c_val = gender_campaign.get(g, 0)
+    b_val = gender_before.get(g, 0)
+    gender_parts.append(f"{g} {c_val:.0f}% (이전 {b_val:.0f}%)")
+st.caption(f"성별 구성: {' / '.join(gender_parts)}")
 
 st.markdown("---")
 
@@ -569,32 +572,57 @@ st.subheader("신환 재방문 분석")
 # 캠페인 기간 신환의 환자번호 추출
 new_patient_ids = new_patients_campaign_df['환자번호'].unique()
 
+# 비교 기간 신환의 재방문 (delta 계산용)
+before_new_patient_ids = new_patients_before_df['환자번호'].unique()
+before_after_start = before_end + timedelta(days=1)
+before_after_end = before_end + timedelta(days=30)
+before_after_data = df[
+    (df['진료일자'] >= pd.to_datetime(before_after_start)) &
+    (df['진료일자'] <= pd.to_datetime(before_after_end))
+]
+before_revisits = before_after_data[before_after_data['환자번호'].isin(before_new_patient_ids)]
+before_revisit_count = before_revisits.groupby('환자번호').size().reset_index(name='재방문횟수')
+before_revisit_rate = len(before_revisit_count) / len(before_new_patient_ids) * 100 if len(before_new_patient_ids) > 0 else 0
+
 # 이후 30일간 재방문 확인
 if len(after_data) > 0:
-    # Task 3: 행정동 필터 제거 — 환자번호 기준만
     revisits = after_data[after_data['환자번호'].isin(new_patient_ids)]
-
     revisit_count = revisits.groupby('환자번호').size().reset_index(name='재방문횟수')
 
     col1, col2, col3 = st.columns(3)
 
     with col1:
         revisit_rate = len(revisit_count) / len(new_patient_ids) * 100 if len(new_patient_ids) > 0 else 0
-        st.metric("30일 내 재방문율", f"{revisit_rate:.1f}%")
+        revisit_delta = revisit_rate - before_revisit_rate
+        st.metric("30일 내 재방문율", f"{revisit_rate:.1f}%", f"{revisit_delta:+.1f}%p",
+            delta_color="normal",
+            help=f"캠페인 신환 중 종료 후 30일 내 1회 이상 재방문한 비율. 높을수록 단골 전환이 잘 되고 있습니다. 비교 기간 신환은 {before_revisit_rate:.1f}%였습니다.")
 
     with col2:
         avg_revisits = revisit_count['재방문횟수'].mean() if len(revisit_count) > 0 else 0
-        st.metric("평균 재방문 횟수", f"{avg_revisits:.1f}회")
+        before_avg_revisits = before_revisit_count['재방문횟수'].mean() if len(before_revisit_count) > 0 else 0
+        avg_revisit_delta = avg_revisits - before_avg_revisits
+        st.metric("평균 재방문 횟수", f"{avg_revisits:.1f}회", f"{avg_revisit_delta:+.1f}회",
+            delta_color="normal",
+            help=f"재방문한 환자들의 평균 방문 횟수. 높을수록 정기 내원으로 이어지고 있습니다. 비교 기간은 {before_avg_revisits:.1f}회였습니다.")
 
     with col3:
-        # Task 3: 행정동 필터 제거
         retention_7d_data = after_data[
             (after_data['환자번호'].isin(new_patient_ids)) &
             (after_data['진료일자'] <= pd.to_datetime(campaign_end + timedelta(days=7)))
         ]
         retention_7d = len(retention_7d_data['환자번호'].unique())
         retention_7d_rate = retention_7d / len(new_patient_ids) * 100 if len(new_patient_ids) > 0 else 0
-        st.metric("7일 내 재방문율", f"{retention_7d_rate:.1f}%")
+
+        before_7d_data = before_after_data[
+            (before_after_data['환자번호'].isin(before_new_patient_ids)) &
+            (before_after_data['진료일자'] <= pd.to_datetime(before_end + timedelta(days=7)))
+        ]
+        before_7d_rate = len(before_7d_data['환자번호'].unique()) / len(before_new_patient_ids) * 100 if len(before_new_patient_ids) > 0 else 0
+        retention_7d_delta = retention_7d_rate - before_7d_rate
+        st.metric("7일 내 재방문율", f"{retention_7d_rate:.1f}%", f"{retention_7d_delta:+.1f}%p",
+            delta_color="normal",
+            help=f"신환이 7일 내 빠르게 재방문한 비율. 초기 만족도를 나타냅니다. 비교 기간은 {before_7d_rate:.1f}%였습니다.")
 
     # 재방문 분포
     st.markdown("**재방문 횟수 분포**")
@@ -603,12 +631,19 @@ if len(after_data) > 0:
     revisit_dist.columns = ['재방문횟수', '환자수']
 
     chart3 = alt.Chart(revisit_dist).mark_bar().encode(
-        x=alt.X('재방문횟수:O', title='재방문 횟수'),
+        x=alt.X('재방문횟수:O', title='재방문 횟수', axis=alt.Axis(labelAngle=0)),
         y=alt.Y('환자수:Q', title='환자 수'),
         color=alt.value('#0072C3'),
         tooltip=['재방문횟수', '환자수']
     ).properties(height=300)
 
     st.altair_chart(chart3, width='stretch')
+
+    # 자동 해석 캡션
+    total_revisitors = len(revisit_count)
+    multi_revisitors = len(revisit_count[revisit_count['재방문횟수'] >= 2])
+    multi_rate = multi_revisitors / total_revisitors * 100 if total_revisitors > 0 else 0
+    if total_revisitors > 0:
+        st.caption(f"재방문 환자 {total_revisitors:,}명 중 {multi_revisitors:,}명({multi_rate:.0f}%)이 2회 이상 방문하여 정기 내원으로 전환되는 추세입니다.")
 else:
     st.info("캠페인 종료 후 데이터가 충분하지 않아 재방문 분석을 수행할 수 없습니다.")
