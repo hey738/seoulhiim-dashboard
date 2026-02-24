@@ -137,15 +137,17 @@ patient_growth = ((patients_in_period - ly_total_patients) / ly_total_patients *
 ly_new_patients = ly_filtered[ly_filtered['초/재진'] == "신환"]['환자번호'].nunique()
 ly_new_ratio = ly_new_patients / ly_total_patients if ly_total_patients else 0
 new_ratio_delta = (new_ratio - ly_new_ratio) * 100  # %p 변화
+ly_visits_per_patient = ly_total_visits / ly_total_patients if ly_total_patients else 0
+visits_per_patient = counts_in_period / patients_in_period if patients_in_period else 0
+vpp_growth = ((visits_per_patient - ly_visits_per_patient) / ly_visits_per_patient * 100) if ly_visits_per_patient > 0 else 0
 
 col1, col2, col3, col4, col5 = st.columns(5)
-col1.metric("진료 횟수", f"{counts_in_period:,}건", f"{visit_growth:+.1f}%")
-col2.metric("환자수", f"{patients_in_period:,}명", f"{patient_growth:+.1f}%")
-col3.metric("신환 비율", f"{new_ratio:.1%}", f"{new_ratio_delta:+.1f}%p")
-visits_per_patient = counts_in_period / patients_in_period if patients_in_period else 0
-col4.metric("인당 진료횟수", f"{visits_per_patient:.1f}건")
+col1.metric("진료 횟수", f"{counts_in_period:,}건", f"{visit_growth:+.1f}%", help="선택 기간 내 총 진료 건수 (전년 동기 대비 증감률)")
+col2.metric("환자수", f"{patients_in_period:,}명", f"{patient_growth:+.1f}%", help="선택 기간 내 고유 환자수 (전년 동기 대비 증감률)")
+col3.metric("신환 비율", f"{new_ratio:.1%}", f"{new_ratio_delta:+.1f}%p", help="전체 환자 중 신환 비율 (전년 동기 대비 %p 변화)")
+col4.metric("인당 진료횟수", f"{visits_per_patient:.1f}건", f"{vpp_growth:+.1f}%", help="진료 횟수 / 환자수. 높을수록 재방문이 활발 (전년 동기 대비 증감률)")
 data_completeness = len(filtered[filtered['행정동'] != '']) / len(filtered) if len(filtered) else 0
-col5.metric("데이터 완성도", f"{data_completeness:.0%}")
+col5.metric("데이터 완성도", f"{data_completeness:.0%}", help="필터된 진료 건 중 행정동 정보가 있는 비율")
 
 st.markdown("---")
 

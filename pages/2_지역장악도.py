@@ -215,7 +215,7 @@ c1,c2,c3 = st.columns(3)
 c1.metric("인구수",f"{total_pop:,}명", help="선택 지역의 주민등록 인구수")
 c2.metric("환자수",f"{total_patients:,}명", help="선택 지역의 전체 기간 고유 환자수")
 c3.metric("활성 환자수",f"{active_patients:,}명", help="선택 기간 내 내원한 고유 환자수")
-c1.metric("데이터 완성도",f"{acc*100:.0f}%", help="행정동 정보가 있는 환자 비율")
+c1.metric("데이터 완성도",f"{acc*100:.0f}%", help="전체 고유환자 중 행정동 매칭된 비율. 장악도 산출의 신뢰도 기준")
 c2.metric("지역 장악도",f"{region_pen:.2f}%", help="전체 기간 누적 환자수 / 인구수")
 c3.metric("기간내 장악도",f"{period_pen:.2f}%", help="선택 기간 활성 환자수 / 인구수")
 
