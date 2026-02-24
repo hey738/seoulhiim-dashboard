@@ -175,6 +175,7 @@ ly  ['plot_date'] = ly['pseudo_date']
 # 합치기
 comp = pd.concat([curr[['plot_date','진료횟수','year_group', '진료일자']],
                   ly  [['plot_date','진료횟수','year_group', '진료일자']]])
+comp['날짜'] = comp['진료일자'].dt.strftime('%Y-%m-%d')
 
 comp_area = (
     alt.Chart(comp)
@@ -195,7 +196,7 @@ comp_area = (
                           scale=alt.Scale(domain=['조회 기간','전년 동기'],
                                           range=['#FFDC3C','#A0AEC0'])),
           tooltip=[
-            alt.Tooltip('진료일자:T', title='날짜', format='%Y-%m-%d'),
+            alt.Tooltip('날짜:N', title='날짜'),
             alt.Tooltip('진료횟수:Q',   title='진료횟수'),
             alt.Tooltip('year_group:N', title='기간')
           ]
@@ -211,7 +212,7 @@ comp_hover = (
       .encode(
           x='plot_date:T', y='진료횟수:Q',
           tooltip=[
-            alt.Tooltip('진료일자:T', title='날짜', format='%Y-%m-%d'),
+            alt.Tooltip('날짜:N', title='날짜'),
             alt.Tooltip('진료횟수:Q', title='진료횟수'),
             alt.Tooltip('year_group:N', title='기간')
           ]
@@ -250,6 +251,7 @@ monthly['count_label'] = (
     monthly['ly_진료횟수'].map(lambda x: f"{x:,}건") + "\\n-> " +
     monthly['진료횟수'].map(lambda x: f"{x:,}건")
 )
+monthly['월'] = monthly['진료일자'].dt.strftime('%Y-%m')
 
 # 5) 월간 성장률 차트
 # 1) 막대 차트
@@ -261,7 +263,7 @@ month_bar = (
           x=alt.X('yearmonth(진료일자):O', title='진료일자', axis=alt.Axis(labelExpr="timeFormat(datum.value, '%Y-%m')", labelAngle=-45, labelOverlap=False)),
           y=alt.Y('성장률:Q', axis=alt.Axis(format='.1%', labelExpr="datum.value >= 0 ? format(datum.value, '.0%') + ' 증가' : format(-datum.value, '.0%') + ' 감소'")),
           tooltip=[
-             alt.Tooltip('yearmonth(진료일자):T', title='월', format='%Y-%m'),
+             alt.Tooltip('월:N', title='월'),
              alt.Tooltip('성장률:Q',       title='성장률', format='.1%'),
              alt.Tooltip('진료횟수:Q',             title='이번 년 진료횟수'),
              alt.Tooltip('ly_진료횟수:Q',          title='전년 동기 진료횟수')
@@ -357,6 +359,7 @@ melted = daily.melt(
     var_name='지표',
     value_name='값'
 )
+melted['날짜'] = melted['진료일자'].dt.strftime('%Y-%m-%d')
 # 범례 클릭으로 토글할 셀렉션
 legend_sel = alt.selection_point(fields=['지표'], bind='legend', value=[{'지표': 'MA30'}])
 
@@ -381,7 +384,7 @@ area_chart = (
            x=x_axis,
            y=alt.Y('값:Q', title='진료횟수'),
            tooltip=[
-               alt.Tooltip('진료일자:T', title='날짜', format='%Y-%m-%d'),
+               alt.Tooltip('날짜:N', title='날짜'),
                alt.Tooltip('값:Q',        title='진료횟수')
            ]
        )
@@ -404,7 +407,7 @@ ma_chart = (
            ),
            opacity=alt.condition(legend_sel, alt.value(1), alt.value(0.1)),
            tooltip=[
-               alt.Tooltip('진료일자:T', title='날짜', format='%Y-%m-%d'),
+               alt.Tooltip('날짜:N', title='날짜'),
                alt.Tooltip('지표:N',      title='지표'),
                alt.Tooltip('값:Q',        title='진료횟수')
            ]
@@ -421,7 +424,7 @@ daily_hover = (
        .encode(
             x='진료일자:T', y='값:Q',
             tooltip=[
-                alt.Tooltip('진료일자:T', title='날짜', format='%Y-%m-%d'),
+                alt.Tooltip('날짜:N', title='날짜'),
                 alt.Tooltip('값:Q',        title='진료횟수')
             ]
         )
@@ -434,7 +437,7 @@ trend_hover = (
        .encode(
             x='진료일자:T', y='값:Q',
             tooltip=[
-                alt.Tooltip('진료일자:T', title='날짜', format='%Y-%m-%d'),
+                alt.Tooltip('날짜:N', title='날짜'),
                 alt.Tooltip('지표:N',      title='지표'),
                 alt.Tooltip('값:Q',        title='진료횟수')
             ]

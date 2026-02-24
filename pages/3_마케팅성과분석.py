@@ -315,28 +315,34 @@ for phase, avg_val in [('캠페인 전', avg_before), ('캠페인 중', avg_duri
 
 phase_df = pd.DataFrame(phase_lines_data)
 
+# 툴팁용 날짜 문자열 (영어 월명 방지)
+daily_new['날짜'] = daily_new['진료일자'].dt.strftime('%Y-%m-%d')
+
 # 차트 레이어
 base = alt.Chart(daily_new).encode(
-    x=alt.X('진료일자:T', title='날짜')
+    x=alt.X('진료일자:T', title='날짜', axis=alt.Axis(format='%m-%d'))
 )
 
 line = base.mark_line(color='#0072C3', opacity=0.4).encode(
     y=alt.Y('신환수:Q', title='신환 수(명)'),
-    tooltip=[alt.Tooltip('진료일자:T', title='날짜', format='%Y-%m-%d'), '신환수:Q']
+    tooltip=[alt.Tooltip('날짜:N', title='날짜'), '신환수:Q']
 )
 
 ma_line = base.mark_line(color='#0072C3', strokeWidth=2).encode(
     y='7일 이동평균:Q',
-    tooltip=[alt.Tooltip('진료일자:T', title='날짜', format='%Y-%m-%d'), alt.Tooltip('7일 이동평균:Q', format='.1f')]
+    tooltip=[alt.Tooltip('날짜:N', title='날짜'), alt.Tooltip('7일 이동평균:Q', format='.1f')]
 )
 
 # 캠페인 기간 음영
 campaign_rect = alt.Chart(pd.DataFrame({
     'start': [campaign_start],
-    'end': [campaign_end]
+    'end': [campaign_end],
+    '캠페인 시작': [str(campaign_start)],
+    '캠페인 종료': [str(campaign_end)]
 })).mark_rect(opacity=0.12, color='#2CA02C').encode(
     x='start:T',
-    x2='end:T'
+    x2='end:T',
+    tooltip=[alt.Tooltip('캠페인 시작:N'), alt.Tooltip('캠페인 종료:N')]
 )
 
 # Phase 평균 수평선
