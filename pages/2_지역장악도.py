@@ -198,14 +198,70 @@ region_pen      = total_patients/total_pop*100 if total_pop else 0
 period_pen      = active_patients/total_pop*100 if total_pop else 0
 
 c1,c2,c3 = st.columns(3)
-c1.metric("인구수",f"{total_pop:,}명")
-c2.metric("환자수",f"{total_patients:,}명")
-c3.metric("활성 환자수",f"{active_patients:,}명")
-c1.metric("데이터 완성도",f"{acc*100:.0f}%")
-c2.metric("지역 장악도",f"{region_pen:.2f}%")
-c3.metric("기간내 장악도",f"{period_pen:.2f}%")
+c1.metric("인구수",f"{total_pop:,}명", help="선택 지역의 주민등록 인구수")
+c2.metric("환자수",f"{total_patients:,}명", help="선택 지역의 전체 기간 고유 환자수")
+c3.metric("활성 환자수",f"{active_patients:,}명", help="선택 기간 내 내원한 고유 환자수")
+c1.metric("데이터 완성도",f"{acc*100:.0f}%", help="행정동 정보가 있는 환자 비율")
+c2.metric("지역 장악도",f"{region_pen:.2f}%", help="전체 기간 누적 환자수 / 인구수")
+c3.metric("기간내 장악도",f"{period_pen:.2f}%", help="선택 기간 활성 환자수 / 인구수")
 
 st.markdown("---")
+
+# 하위 지역별 장악도 랭킹
+if province != "전체" and dong == "전체":
+    if city == "전체":
+        sub_col = "시/군/구"
+        sub_regions = pop_df.loc[province].index.get_level_values(0).unique()
+    else:
+        sub_col = "행정동"
+        sub_regions = pop_df.loc[(province, city)].index.get_level_values(0).unique()
+
+    ranking_data = []
+    for region in sub_regions:
+        sub_pop = pop_sel[pop_sel[sub_col] == region]["전체인구"].sum()
+        sub_patients = active[active[sub_col] == region]["환자번호"].nunique()
+        if sub_pop > 0:
+            ranking_data.append({
+                "지역": region,
+                "인구수": sub_pop,
+                "환자수": sub_patients,
+                "장악도(%)": sub_patients / sub_pop * 100
+            })
+
+    if ranking_data:
+        ranking_df = pd.DataFrame(ranking_data).sort_values("장악도(%)", ascending=False)
+        rank_title = f"{province} {city} {sub_col}별 장악도 랭킹" if city != "전체" else f"{province} {sub_col}별 장악도 랭킹"
+        st.subheader(rank_title)
+
+        rank_bar = (
+            alt.Chart(ranking_df)
+            .mark_bar()
+            .encode(
+                y=alt.Y("지역:N", sort=ranking_df["지역"].tolist(), title=None),
+                x=alt.X("장악도(%):Q", title="장악도(%)"),
+                color=alt.Color("장악도(%):Q", scale=alt.Scale(scheme="tealblues"), legend=None),
+                tooltip=[
+                    alt.Tooltip("지역:N", title="지역"),
+                    alt.Tooltip("인구수:Q", title="인구수", format=","),
+                    alt.Tooltip("환자수:Q", title="환자수", format=","),
+                    alt.Tooltip("장악도(%):Q", title="장악도(%)", format=".2f")
+                ]
+            )
+        )
+        rank_label = (
+            alt.Chart(ranking_df)
+            .mark_text(align="left", dx=3, fontSize=12)
+            .encode(
+                y=alt.Y("지역:N", sort=ranking_df["지역"].tolist()),
+                x=alt.X("장악도(%):Q"),
+                text=alt.Text("장악도(%):Q", format=".2f")
+            )
+        )
+        rank_chart = (rank_bar + rank_label).properties(
+            height=max(len(ranking_df) * 25, 200)
+        )
+        st.altair_chart(rank_chart, use_container_width=True)
+        st.markdown("---")
 
 # 차트
 custom_order = ["9세이하"]+[f"{i}대" for i in range(10,100,10)]+["100세이상"]
@@ -216,23 +272,6 @@ title = (
     "전체 지역 연령대 장악도"
 )
 st.subheader(title)
-
-# # max_pen 계산, NaN 방지
-# raw_max = merge_sel["장악도(%)"].max(skipna=True)
-# if pd.notna(raw_max) and raw_max>0:
-#     max_pen = raw_max*1.1
-#     y_axis = alt.Y(
-#         "장악도(%):Q",
-#         scale=alt.Scale(domain=[0, max_pen]),
-#         axis=alt.Axis(format=".4f"),
-#         title="장악도(%)"
-#     )
-# else:
-#     y_axis = alt.Y(
-#         "장악도(%):Q",
-#         axis=alt.Axis(format=".4f"),
-#         title="장악도(%)"
-#     )
 
 bar = (
     alt.Chart(merge_sel)
