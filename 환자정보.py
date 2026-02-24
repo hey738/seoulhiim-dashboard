@@ -142,7 +142,8 @@ col1, col2, col3, col4, col5 = st.columns(5)
 col1.metric("진료 횟수", f"{counts_in_period:,}건", f"{visit_growth:+.1f}%")
 col2.metric("환자수", f"{patients_in_period:,}명", f"{patient_growth:+.1f}%")
 col3.metric("신환 비율", f"{new_ratio:.1%}", f"{new_ratio_delta:+.1f}%p")
-col4.metric("재방문 비율", f"{return_ratio:.1%}")
+visits_per_patient = counts_in_period / patients_in_period if patients_in_period else 0
+col4.metric("인당 진료횟수", f"{visits_per_patient:.1f}건")
 col5.metric("평균 연령", f"{avg_age:.1f}세")
 
 st.markdown("---")
