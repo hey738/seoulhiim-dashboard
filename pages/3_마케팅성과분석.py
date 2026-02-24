@@ -289,39 +289,91 @@ trend_data = df[(df['진료일자'] >= pd.to_datetime(trend_start)) & (df['진�
 if target_regions:
     trend_data = trend_data[trend_data['행정동'].isin(target_regions)]
 
-# Task 1(b): nunique로 통일
+# nunique 기반 일별 신환
 daily_new = trend_data[trend_data['초/재진'] == '신환'].groupby('진료일자')['환자번호'].nunique().reset_index(name='신환수')
 daily_new['7일 이동평균'] = daily_new['신환수'].rolling(window=7, min_periods=1).mean()
 
+# Phase 분류 (전/중/후)
+campaign_start_ts = pd.to_datetime(campaign_start)
+campaign_end_ts = pd.to_datetime(campaign_end)
+daily_new['구간'] = daily_new['진료일자'].apply(
+    lambda d: '캠페인 전' if d < campaign_start_ts else ('캠페인 중' if d <= campaign_end_ts else '캠페인 후')
+)
+
+# Phase별 일평균 계산
+phase_avg = daily_new.groupby('구간')['신환수'].mean()
+avg_before = phase_avg.get('캠페인 전', 0)
+avg_during = phase_avg.get('캠페인 중', 0)
+avg_after = phase_avg.get('캠페인 후', 0)
+
+# Phase 평균선 데이터
+phase_lines_data = []
+for phase, avg_val in [('캠페인 전', avg_before), ('캠페인 중', avg_during), ('캠페인 후', avg_after)]:
+    phase_rows = daily_new[daily_new['구간'] == phase]
+    if len(phase_rows) > 0:
+        phase_lines_data.append({'구간': phase, '시작': phase_rows['진료일자'].min(), '종료': phase_rows['진료일자'].max(), '일평균': avg_val})
+
+phase_df = pd.DataFrame(phase_lines_data)
+
+# 차트 레이어
 base = alt.Chart(daily_new).encode(
     x=alt.X('진료일자:T', title='날짜')
 )
 
-line = base.mark_line(color='#0072C3').encode(
-    y=alt.Y('신환수:Q', title='신환 수'),
-    tooltip=['진료일자:T', '신환수:Q']
+line = base.mark_line(color='#0072C3', opacity=0.4).encode(
+    y=alt.Y('신환수:Q', title='신환 수(명)'),
+    tooltip=[alt.Tooltip('진료일자:T', title='날짜', format='%Y-%m-%d'), '신환수:Q']
 )
 
-avg_line = base.mark_line(color='red', strokeDash=[5, 5]).encode(
+ma_line = base.mark_line(color='#0072C3', strokeWidth=2).encode(
     y='7일 이동평균:Q',
-    tooltip=['진료일자:T', alt.Tooltip('7일 이동평균:Q', format='.1f')]
+    tooltip=[alt.Tooltip('진료일자:T', title='날짜', format='%Y-%m-%d'), alt.Tooltip('7일 이동평균:Q', format='.1f')]
 )
 
 # 캠페인 기간 음영
 campaign_rect = alt.Chart(pd.DataFrame({
     'start': [campaign_start],
     'end': [campaign_end]
-})).mark_rect(opacity=0.2, color='green').encode(
+})).mark_rect(opacity=0.12, color='#2CA02C').encode(
     x='start:T',
     x2='end:T'
 )
 
-chart = (campaign_rect + line + avg_line).properties(
-    height=400,
-    title='캠페인 전후 신환 추이'
+# Phase 평균 수평선
+phase_color_map = {'캠페인 전': '#A0AEC0', '캠페인 중': '#2CA02C', '캠페인 후': '#E67E22'}
+phase_rules = alt.Chart(phase_df).mark_rule(strokeDash=[6, 4], strokeWidth=2).encode(
+    x='시작:T',
+    x2='종료:T',
+    y='일평균:Q',
+    color=alt.Color('구간:N',
+        scale=alt.Scale(domain=list(phase_color_map.keys()), range=list(phase_color_map.values())),
+        legend=alt.Legend(title='구간 일평균')
+    ),
+    tooltip=[alt.Tooltip('구간:N'), alt.Tooltip('일평균:Q', format='.1f', title='일평균 신환')]
+)
+
+# Phase 평균 라벨
+phase_labels = alt.Chart(phase_df).mark_text(
+    align='left', dx=5, dy=-8, fontSize=13, fontWeight='bold'
+).encode(
+    x='시작:T',
+    y='일평균:Q',
+    text=alt.Text('일평균:Q', format='.1f'),
+    color=alt.Color('구간:N', scale=alt.Scale(domain=list(phase_color_map.keys()), range=list(phase_color_map.values())), legend=None)
+)
+
+chart = (campaign_rect + line + ma_line + phase_rules + phase_labels).properties(
+    height=400
 ).interactive()
 
 st.altair_chart(chart, width='stretch')
+
+# 자동 해석 캡션
+if avg_before > 0:
+    during_vs_before = (avg_during - avg_before) / avg_before * 100
+    after_vs_before = (avg_after - avg_before) / avg_before * 100
+    sustain_text = f"종료 후 일평균 {avg_after:.1f}명으로 {'효과 일부 지속' if avg_after > avg_before else '캠페인 전 수준으로 회귀'}."
+    st.caption(f"캠페인 기간 일평균 신환 {avg_during:.1f}명 (캠페인 전 {avg_before:.1f}명 대비 {during_vs_before:+.0f}%). {sustain_text}")
 
 st.markdown("---")
 
