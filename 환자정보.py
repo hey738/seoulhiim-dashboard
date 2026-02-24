@@ -112,15 +112,6 @@ new_ratio = new_patients / patients_in_period if patients_in_period else 0
 return_ratio = return_patients / patients_in_period if patients_in_period else 0
 avg_age = filtered['나이'].mean()
 
-col1, col2, col3, col4, col5 = st.columns(5)
-col1.metric("진료 횟수", f"{counts_in_period:,}건")
-col2.metric("환자수", f"{patients_in_period:,}명")
-col3.metric("신환 비율", f"{new_ratio:.1%}")
-col4.metric("재방문 비율", f"{return_ratio:.1%}")
-col5.metric("평균 연령", f"{avg_age:.1f}세")
-
-st.markdown("---")
-
 # 기준 기간 정의
 start = pd.to_datetime(start_date)
 end   = pd.to_datetime(end_date)
@@ -137,6 +128,24 @@ ly_filtered = df[
 ]
 if gender != "전체":
     ly_filtered = ly_filtered[ly_filtered['성별'] == gender]
+
+# 전년 대비 성장률
+ly_total_visits = ly_filtered.shape[0]
+visit_growth = ((counts_in_period - ly_total_visits) / ly_total_visits * 100) if ly_total_visits > 0 else 0
+ly_total_patients = ly_filtered['환자번호'].nunique()
+patient_growth = ((patients_in_period - ly_total_patients) / ly_total_patients * 100) if ly_total_patients > 0 else 0
+ly_new_patients = ly_filtered[ly_filtered['초/재진'] == "신환"]['환자번호'].nunique()
+ly_new_ratio = ly_new_patients / ly_total_patients if ly_total_patients else 0
+new_ratio_delta = (new_ratio - ly_new_ratio) * 100  # %p 변화
+
+col1, col2, col3, col4, col5 = st.columns(5)
+col1.metric("진료 횟수", f"{counts_in_period:,}건", f"{visit_growth:+.1f}%")
+col2.metric("환자수", f"{patients_in_period:,}명", f"{patient_growth:+.1f}%")
+col3.metric("신환 비율", f"{new_ratio:.1%}", f"{new_ratio_delta:+.1f}%p")
+col4.metric("재방문 비율", f"{return_ratio:.1%}")
+col5.metric("평균 연령", f"{avg_age:.1f}세")
+
+st.markdown("---")
 
 # 일별 집계 (filtered 기준)
 curr = (
@@ -302,17 +311,6 @@ col1, col2 = st.columns(2)
 
 with col1:
     st.subheader("전년 동기 내원 추이 비교")
-    # 진료횟수 성장률
-    curr_total = curr['진료횟수'].sum()
-    ly_total = ly['진료횟수'].sum()
-    visit_growth = ((curr_total - ly_total) / ly_total * 100) if ly_total > 0 else 0
-    # 고유 환자수 성장률
-    curr_patients = filtered['환자번호'].nunique()
-    ly_patients = ly_filtered['환자번호'].nunique()
-    patient_growth = ((curr_patients - ly_patients) / ly_patients * 100) if ly_patients > 0 else 0
-    m1, m2 = st.columns(2)
-    m1.metric("진료횟수", f"{curr_total:,}건", f"{visit_growth:+.1f}%")
-    m2.metric("환자수", f"{curr_patients:,}명", f"{patient_growth:+.1f}%")
     st.altair_chart(final_comp_chart, width='stretch')
 
 with col2:
