@@ -144,7 +144,8 @@ col2.metric("환자수", f"{patients_in_period:,}명", f"{patient_growth:+.1f}%"
 col3.metric("신환 비율", f"{new_ratio:.1%}", f"{new_ratio_delta:+.1f}%p")
 visits_per_patient = counts_in_period / patients_in_period if patients_in_period else 0
 col4.metric("인당 진료횟수", f"{visits_per_patient:.1f}건")
-col5.metric("평균 연령", f"{avg_age:.1f}세")
+data_completeness = len(filtered[filtered['행정동'] != '']) / len(filtered) if len(filtered) else 0
+col5.metric("데이터 완성도", f"{data_completeness:.0%}")
 
 st.markdown("---")
 
@@ -460,14 +461,57 @@ heat_chart = alt.Chart(heat).mark_rect().encode(
 )
 st.altair_chart(heat_chart, width='stretch')
 
-# 7) 환자 지도 분포
-st.subheader("환자 지도 분포")
-m = folium.Map(location=[37.5665, 126.9780], zoom_start=7)
-folium.plugins.Fullscreen().add_to(m)
-unique_patients = filtered.drop_duplicates(subset='환자번호').copy()
-unique_patients['x'] = unique_patients['x'].replace("", pd.NA)
-unique_patients['y'] = unique_patients['y'].replace("", pd.NA)
-data = list(unique_patients.dropna(subset=['y','x'])[['y','x']].itertuples(index=False, name=None))
-FastMarkerCluster(data).add_to(m)
-st_folium(m, width=800, height=600, returned_objects=[])
+# 7) 환자 지도 분포 + 연령대별 환자 분포
+map_col, donut_col = st.columns(2)
+
+with map_col:
+    st.subheader("환자 지도 분포")
+    m = folium.Map(location=[37.5665, 126.9780], zoom_start=7)
+    folium.plugins.Fullscreen().add_to(m)
+    unique_patients = filtered.drop_duplicates(subset='환자번호').copy()
+    unique_patients['x'] = unique_patients['x'].replace("", pd.NA)
+    unique_patients['y'] = unique_patients['y'].replace("", pd.NA)
+    data = list(unique_patients.dropna(subset=['y','x'])[['y','x']].itertuples(index=False, name=None))
+    FastMarkerCluster(data).add_to(m)
+    st_folium(m, width=None, height=600, returned_objects=[])
+
+with donut_col:
+    st.subheader("연령대별 환자 분포")
+    age_order = ["9세이하"] + [f"{i}대" for i in range(10, 100, 10)] + ["100세이상"]
+    age_dist = (
+        filtered.drop_duplicates(subset='환자번호')
+        .groupby('연령대', observed=False)['환자번호']
+        .nunique()
+        .reset_index(name='환자수')
+    )
+    age_dist = age_dist[age_dist['환자수'] > 0]
+    total = age_dist['환자수'].sum()
+    age_dist['비율'] = age_dist['환자수'] / total
+
+    bar = (
+        alt.Chart(age_dist)
+        .mark_bar(cornerRadiusEnd=4)
+        .encode(
+            y=alt.Y('연령대:N', sort=age_order, title=None, axis=alt.Axis(labelFontSize=13)),
+            x=alt.X('환자수:Q', title='환자수', axis=alt.Axis(labelFontSize=11)),
+            color=alt.Color('환자수:Q', scale=alt.Scale(scheme='tealblues'), legend=None),
+            tooltip=[
+                alt.Tooltip('연령대:N', title='연령대'),
+                alt.Tooltip('환자수:Q', title='환자수', format=','),
+                alt.Tooltip('비율:Q', title='비율', format='.1%')
+            ]
+        )
+    )
+
+    label = (
+        alt.Chart(age_dist)
+        .mark_text(align='left', dx=4, fontSize=12, fontWeight='bold')
+        .encode(
+            y=alt.Y('연령대:N', sort=age_order),
+            x=alt.X('환자수:Q'),
+            text=alt.Text('비율:Q', format='.1%')
+        )
+    )
+
+    st.altair_chart(bar + label, width='stretch', height=600)
 
