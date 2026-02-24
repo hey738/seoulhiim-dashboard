@@ -251,6 +251,7 @@ if dong == "전체":
 
     if ranking_data:
         ranking_df = pd.DataFrame(ranking_data).sort_values("장악도(%)", ascending=False)
+        ranking_df["label"] = ranking_df.apply(lambda r: f"{r['지역']}  {r['장악도(%)']:.2f}%", axis=1)
         if province == "전체":
             rank_title = "시/도별 장악도 랭킹"
         elif city == "전체":
@@ -266,7 +267,7 @@ if dong == "전체":
             alt.Chart(ranking_df)
             .mark_bar(cursor="pointer")
             .encode(
-                y=alt.Y("지역:N", sort=ranking_df["지역"].tolist(), title=None),
+                y=alt.Y("label:N", sort=ranking_df["label"].tolist(), title=None, axis=alt.Axis(labelLimit=300)),
                 x=alt.X("장악도(%):Q", title="장악도(%)"),
                 color=alt.Color("장악도(%):Q", scale=alt.Scale(scheme="tealblues"), legend=None),
                 tooltip=[
