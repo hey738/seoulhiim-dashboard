@@ -208,8 +208,11 @@ c3.metric("기간내 장악도",f"{period_pen:.2f}%", help="선택 기간 활성
 st.markdown("---")
 
 # 하위 지역별 장악도 랭킹
-if province != "전체" and dong == "전체":
-    if city == "전체":
+if dong == "전체":
+    if province == "전체":
+        sub_col = "시/도"
+        sub_regions = pop_df.index.get_level_values(0).unique()
+    elif city == "전체":
         sub_col = "시/군/구"
         sub_regions = pop_df.loc[province].index.get_level_values(0).unique()
     else:
@@ -218,8 +221,12 @@ if province != "전체" and dong == "전체":
 
     ranking_data = []
     for region in sub_regions:
-        sub_pop = pop_sel[pop_sel[sub_col] == region]["전체인구"].sum()
-        sub_patients = active[active[sub_col] == region]["환자번호"].nunique()
+        if province == "전체":
+            sub_pop = pop_df.loc[region]["전체인구"].sum()
+            sub_patients = active[active["시/도"] == region]["환자번호"].nunique()
+        else:
+            sub_pop = pop_sel[pop_sel[sub_col] == region]["전체인구"].sum()
+            sub_patients = active[active[sub_col] == region]["환자번호"].nunique()
         if sub_pop > 0:
             ranking_data.append({
                 "지역": region,
@@ -230,7 +237,12 @@ if province != "전체" and dong == "전체":
 
     if ranking_data:
         ranking_df = pd.DataFrame(ranking_data).sort_values("장악도(%)", ascending=False)
-        rank_title = f"{province} {city} {sub_col}별 장악도 랭킹" if city != "전체" else f"{province} {sub_col}별 장악도 랭킹"
+        if province == "전체":
+            rank_title = "시/도별 장악도 랭킹"
+        elif city == "전체":
+            rank_title = f"{province} {sub_col}별 장악도 랭킹"
+        else:
+            rank_title = f"{province} {city} {sub_col}별 장악도 랭킹"
         st.subheader(rank_title)
 
         rank_bar = (
